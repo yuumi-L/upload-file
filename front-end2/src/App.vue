@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <input type="file" id="file-input" />
+    <input type="file" id="file-input" name="file"/>
     <button id="btn">上传</button>
   </div>
 </template>
@@ -15,13 +15,13 @@ export default {
   methods: {
     clickUpload() {
       const fileBtn = document.querySelector("#file-input");
-      console.log(fileBtn.files[0]);
       let totalSize = fileBtn.files[0].size;
       let file = fileBtn.files[0];
       const prePicesSize = 1024 * 1024;
       // 1024 * 1024 // 这是1M
       if (totalSize <= prePicesSize) {
         // 小于1M 不分片
+        console.log(file)
         this.upload(file);
       } else {
         console.log(1);
@@ -48,16 +48,26 @@ export default {
       }
     },
     upload(filePieceArrOrFile, index) {
+      console.log(filePieceArrOrFile)
+      
       const formData = new FormData();
-      if (typeof filePieceArrOrFile === "object") {
+      console.log(Object.prototype.toString.call(filePieceArrOrFile))
+      debugger
+      if (Object.prototype.toString.call(filePieceArrOrFile) === "[object Array]") {
         for (let i = 0; i < filePieceArrOrFile.length; i++) {
           const filePiece = filePieceArrOrFile[i];
           console.log(filePiece);
-          formData.append(`file${filePiece.index}`, filePiece.file);
+          formData.append(`file`, filePiece.file);
         }
       } else {
-        formData.append(`file`, filePieceArrOrFile);
+        formData.append('files', filePieceArrOrFile);
       }
+      // console.log(formData.has('file0'))
+      // console.log(formData.has('file2'))
+      // console.log(formData.has('file3'))
+      // console.log(formData.has('file4'))
+      // console.log(formData.has('file5'))
+      // console.log(formData.has('file6'))
       this.$axios.post("/upload", formData).then(res => {
         console.log(res.data);
       });

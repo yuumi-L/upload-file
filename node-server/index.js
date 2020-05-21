@@ -38,23 +38,22 @@ app.get('/', function (req, res) {
   res.send('hello world')
 })
 
-app.post('/upload', function (req, res) {
+app.post('/upload', upload.array('file',6), function (req, res) {
   console.log(req.files)
+  // 拿到后缀名
+  // var extname = path.extname(req.files[0].originalname);
 
-  //拿到后缀名
-  var extname = path.extname(req.files[0].originalname);
+  // //拼接新的文件路径，文件加上后缀名
+  // var newPath = req.files[0].path + extname;
 
-  //拼接新的文件路径，文件加上后缀名
-  var newPath = req.files[0].path + extname;
-
-  //重命名
-  fs.rename(req.files[0].path, newPath, function (err) {
-    if (err) {
-      res.send('上传失败')
-    } else {
-      res.send('上传成功')
-    }
-  })
+  // //重命名
+  // fs.rename(req.files[0].path, newPath, function (err) {
+  //   if (err) {
+  //     res.send('上传失败')
+  //   } else {
+  //     res.send('上传成功')
+  //   }
+  // })
 })
 
 app.listen(3000, () => {
