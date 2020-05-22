@@ -1,75 +1,81 @@
 <template>
   <div id="app">
-    <input type="file" id="file-input" name="file"/>
-    <button id="btn">上传</button>
+    <input type="file" @change="handleFileChange" />
+    <el-button @click="handleUpload">上传</el-button>
   </div>
 </template>
 
 <script>
+const SIZE = 1 * 1024 * 1024;
 export default {
-  name: "App",
-  mounted() {
-    const btn = document.querySelector("#btn");
-    btn.addEventListener("click", this.clickUpload);
+  data() {
+    return {
+      container: {
+        file: null
+      },
+      data: []
+    };
   },
   methods: {
-    clickUpload() {
-      const fileBtn = document.querySelector("#file-input");
-      let totalSize = fileBtn.files[0].size;
-      let file = fileBtn.files[0];
-      const prePicesSize = 1024 * 1024;
-      // 1024 * 1024 // 这是1M
-      if (totalSize <= prePicesSize) {
-        // 小于1M 不分片
-        console.log(file)
-        this.upload(file);
-      } else {
-        console.log(1);
-        // 大于1M的分片 每片1M
-        let start = 0; // 文件切割开始的位置
-        let end; // 文件切割结束的位置
-        let totalPieces = Math.ceil(totalSize / prePicesSize);
-
-        let index = 0;
-        let filePiece;
-        let filePieceArr = [];
-        while (index < totalPieces) {
-          end = start + prePicesSize;
-          filePiece = file.slice(start, end);
-          // this.upload(filePiece, index);
-          filePieceArr.push({
-            file: filePieceArr,
-            index: index
-          });
-          start += prePicesSize;
-          index++;
-        }
-        this.upload(filePieceArr);
-      }
+    // 选择文件
+    handleFileChange(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      this.container.file = file;
     },
-    upload(filePieceArrOrFile, index) {
-      console.log(filePieceArrOrFile)
-      
-      const formData = new FormData();
-      console.log(Object.prototype.toString.call(filePieceArrOrFile))
-      debugger
-      if (Object.prototype.toString.call(filePieceArrOrFile) === "[object Array]") {
-        for (let i = 0; i < filePieceArrOrFile.length; i++) {
-          const filePiece = filePieceArrOrFile[i];
-          console.log(filePiece);
-          formData.append(`file`, filePiece.file);
-        }
-      } else {
-        formData.append('files', filePieceArrOrFile);
+    // 点击上传
+    async handleUpload() {
+      if (!this.container.file) return;
+      const fileChunkList = this.createFileChunk(this.container.file);
+      this.data = fileChunkList.map(({ file }, index) => ({
+        chunk: file,
+        hash: index + "-" + this.container.file.name
+      }));
+
+      await this.uploadChunk();
+    },
+    // 获取切片
+    createFileChunk(file, size = SIZE) {
+      const fileChunkList = [];
+      let cur = 0;
+      while (cur < file.size) {
+        fileChunkList.push({
+          file: file.slice(cur, cur + size)
+        });
+        cur += size;
       }
-      // console.log(formData.has('file0'))
-      // console.log(formData.has('file2'))
-      // console.log(formData.has('file3'))
-      // console.log(formData.has('file4'))
-      // console.log(formData.has('file5'))
-      // console.log(formData.has('file6'))
-      this.$axios.post("/upload", formData).then(res => {
-        console.log(res.data);
+      return fileChunkList;
+    },
+    async uploadChunk() {
+      //  this.data 中的数据为 fileChunkList 为每一个chunk 创建一个fromdata 并且使用promise.all上传
+      this.requestList = this.data
+        .map(({ chunk, hash }) => {
+          const formData = new FormData();
+          formData.append("chunk", chunk);
+          formData.append("hash", hash);
+          formData.append("filename", this.container.file.name);
+          return { formData };
+        })
+        .map(async ({ formData }) =>
+          this.request({
+            url: "http://localhost:3000",
+            data: formData
+          })
+        );
+      var res = await Promise.all(this.requestList);
+      // await this.mergeRequest();
+      console.log(res);
+    },
+    // 发送合并请求
+    async mergeRequest() {
+      await this.request({
+        url: "http://localhost:3000/merge",
+        headers: {
+          "content-type": "application/json"
+        },
+        data: JSON.stringify({
+          filename: this.container.file.name
+        })
       });
     }
   }

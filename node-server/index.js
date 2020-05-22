@@ -38,7 +38,7 @@ app.get('/', function (req, res) {
   res.send('hello world')
 })
 
-app.post('/upload', upload.array('file',6), function (req, res) {
+app.post('/upload', upload.array('file', 6), function (req, res) {
   console.log(req.files)
   // 拿到后缀名
   // var extname = path.extname(req.files[0].originalname);
